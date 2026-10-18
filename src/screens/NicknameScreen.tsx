@@ -7,7 +7,12 @@ export function NicknameScreen() {
 
   return (
     <main id="main" className="app-shell stack boutique-lounge">
-      <BoutiqueBar profileOpen={profileOpen} cueProfile onProfile={() => setProfileOpen(true)} />
+      <BoutiqueBar
+        profileOpen={profileOpen}
+        cueProfile
+        onProfile={() => setProfileOpen(true)}
+        onLeave={() => setProfileOpen(false)}
+      />
       <h1>다시 만나서 반가워요.</h1>
       <p className="lede">이름과 숫자 4자리를 입력하면 옷장이 열려요.</p>
       {profileOpen ? null : (

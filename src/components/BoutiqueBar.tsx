@@ -6,9 +6,10 @@ interface Props {
   profileOpen: boolean;
   cueProfile?: boolean;
   onProfile: () => void;
+  onLeave?: () => void;
 }
 
-export function BoutiqueBar({ profileOpen, cueProfile, onProfile }: Props) {
+export function BoutiqueBar({ profileOpen, cueProfile, onProfile, onLeave }: Props) {
   const { state } = useStore();
   const [keep, setKeep] = useState<"loved" | "bag" | null>(null);
 
@@ -35,6 +36,7 @@ export function BoutiqueBar({ profileOpen, cueProfile, onProfile }: Props) {
           >
             <PersonIcon />
           </button>
+          {onLeave ? <LeaveClosetButton onDone={onLeave} /> : null}
           <button
             className={state.bag.length && keep !== "bag" ? "line-icon is-cue" : "line-icon"}
             type="button"
@@ -48,6 +50,33 @@ export function BoutiqueBar({ profileOpen, cueProfile, onProfile }: Props) {
       </div>
       <KeepSheet open={keep} onClose={() => setKeep(null)} />
     </>
+  );
+}
+
+export function LeaveClosetButton({
+  onDone,
+  disabled = false,
+  className = "leave-link",
+}: {
+  onDone?: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const { signOut } = useStore();
+
+  return (
+    <button
+      className={className}
+      type="button"
+      disabled={disabled}
+      aria-label="옷장 나가기"
+      onClick={() => {
+        signOut();
+        onDone?.();
+      }}
+    >
+      나가기
+    </button>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { isPin, normalizePin } from "../data/pin";
 import { useStore } from "../data/store";
-import { PersonIcon } from "./BoutiqueBar";
+import { LeaveClosetButton, PersonIcon } from "./BoutiqueBar";
 
 interface Props {
   open: boolean;
@@ -9,6 +9,7 @@ interface Props {
   submitLabel: string;
   busyLabel: string;
   onReady: (result: "created" | "unlocked") => void;
+  onLeave?: () => void;
 }
 
 export function ProfileMenu() {
@@ -36,8 +37,8 @@ export function ProfileMenu() {
   );
 }
 
-export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady }: Props) {
-  const { state, signedIn, profileExists, openWithPin, signOut } = useStore();
+export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady, onLeave }: Props) {
+  const { state, signedIn, profileExists, openWithPin } = useStore();
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const [nickname, setNickname] = useState("");
@@ -141,9 +142,18 @@ export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady }
       >
         <div className="profile-sheet-top">
           <p className="brand-kicker">PROFILE</p>
-          <button ref={closeRef} className="line-icon sheet-close" type="button" aria-label="닫기" onClick={close}>
-            <CloseIcon />
-          </button>
+          <div className="profile-sheet-actions">
+            <LeaveClosetButton
+              disabled={busy}
+              onDone={() => {
+                onLeave?.();
+                onClose();
+              }}
+            />
+            <button ref={closeRef} className="line-icon sheet-close" type="button" aria-label="닫기" onClick={close}>
+              <CloseIcon />
+            </button>
+          </div>
         </div>
 
         {signedIn ? (
@@ -151,16 +161,6 @@ export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady }
             <h2 id={titleId}>옷장이 열려 있어요</h2>
             <p className="lede">{state.nickname ? `${state.nickname}님` : "프로필"}</p>
             <p className="profile-note">이 기기의 기억만 지워요. 다른 이름과 숫자 4자리로 다시 열 수 있어요.</p>
-            <button
-              className="profile-submit profile-leave"
-              type="button"
-              onClick={() => {
-                signOut();
-                onClose();
-              }}
-            >
-              옷장 나가기
-            </button>
             <button className="profile-submit" type="button" onClick={close}>
               닫기
             </button>

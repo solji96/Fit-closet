@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { isKept, type KeepEntry } from "../data/keeps";
 import { useStore } from "../data/store";
-import { BagIcon, HeartIcon } from "./BoutiqueBar";
+import { BagIcon, HeartIcon, LeaveClosetButton } from "./BoutiqueBar";
 import { ProfileMenu } from "./ProfileAccess";
 
 export function KeepMarks({ entry }: { entry: KeepEntry }) {
@@ -57,6 +57,7 @@ export function KeepNav() {
           <HeartIcon />
         </button>
         <ProfileMenu />
+        <LeaveClosetButton />
         <button
           className={state.bag.length && open !== "bag" ? "line-icon is-cue" : "line-icon"}
           type="button"

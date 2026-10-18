@@ -27,6 +27,15 @@ export function OnboardingScreen() {
   const [itemColors, setItemColors] = useState<Record<string, string[]>>(() => checklistColorMap(state.wardrobe));
   const [error, setError] = useState("");
 
+  const resetDraft = () => {
+    setStep(0);
+    setProfileOpen(false);
+    setPreferences(defaultPreferences);
+    setSelectedIds([]);
+    setItemColors({});
+    setError("");
+  };
+
   const finish = (withPhotos: boolean) => {
     if (!preferences.stylePreferences.length) {
       setError("선호 스타일을 하나 이상 선택해 주세요.");
@@ -76,6 +85,7 @@ export function OnboardingScreen() {
           profileOpen={profileOpen}
           cueProfile={!signedIn}
           onProfile={() => setProfileOpen(true)}
+          onLeave={resetDraft}
         />
         <ol className="onboarding-progress" aria-label={`${step + 1}단계, 3단계 중`}>
           {steps.map((entry) => (
@@ -116,9 +126,6 @@ export function OnboardingScreen() {
               <span>옷장. 가진 옷을 고르면 코디가 나와요.</span>
             </li>
           </ol>
-          <button className="onboarding-next is-sentence" type="button" onClick={() => setProfileOpen(true)}>
-            프로필 만들고 시작하기
-          </button>
           <p className="helper">이미 옷장이 있다면, 같은 이름과 숫자 4자리로 열 수 있어요.</p>
         </section>
       ) : null}
@@ -200,6 +207,7 @@ export function OnboardingScreen() {
           setProfileOpen(false);
           setStep(1);
         }}
+        onLeave={resetDraft}
       />
     </main>
   );
