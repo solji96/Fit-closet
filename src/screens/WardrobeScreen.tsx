@@ -78,7 +78,7 @@ export function WardrobeScreen() {
   };
 
   const archived = state.wardrobe.filter((item) => item.status === "archived");
-  const active = state.wardrobe.filter((item) => item.status === "active");
+  const customItems = state.wardrobe.filter((item) => item.status === "active" && item.source !== "checklist");
 
   return (
     <main id="main" className="app-shell stack wardrobe-atelier">
@@ -144,6 +144,16 @@ export function WardrobeScreen() {
       <OnboardingChecklist
         selectedIds={checklistIds}
         itemColors={checklistColorMap(state.wardrobe)}
+        customItems={customItems}
+        onArchiveCustom={(id) => {
+          dispatch({ type: "set_wardrobe_status", id, status: "archived" });
+          setToast("보관함으로 옮겼습니다. 추천에서는 빠집니다.");
+        }}
+        onEditCustom={(item) => setEditing(item)}
+        onRemoveCustom={(id) => {
+          dispatch({ type: "remove_wardrobe_item", id });
+          setToast("사진 아이템을 이 기기 목록에서 삭제했습니다.");
+        }}
         onChange={(ids, itemColors) => {
           const checklistIds = normalizeChecklistIds(ids);
           dispatch({ type: "set_checklist", checklistIds, itemColors });
@@ -159,31 +169,6 @@ export function WardrobeScreen() {
         }}
       />
 
-      <section className="stack" aria-label="활성 아이템">
-        <div className="wardrobe-bar-list">
-        {active.map((item) => (
-          <WardrobeItemRow
-            key={item.id}
-            item={item}
-            mode="active"
-            onArchive={() => {
-              dispatch({ type: "set_wardrobe_status", id: item.id, status: "archived" });
-              setToast("보관함으로 옮겼습니다. 추천에서는 빠집니다.");
-            }}
-            onRestore={() => undefined}
-            onEdit={item.source === "photo" ? () => setEditing(item) : undefined}
-            onRemove={
-              item.source === "photo"
-                ? () => {
-                    dispatch({ type: "remove_wardrobe_item", id: item.id });
-                    setToast("사진 아이템을 이 기기 목록에서 삭제했습니다.");
-                  }
-                : undefined
-            }
-          />
-        ))}
-        </div>
-      </section>
       <section className="card stack">
         <p className="section-kicker">OPTIONAL PHOTOS</p>
         <h2>사진 등록 (선택)</h2>

@@ -1,12 +1,18 @@
 import { useMemo, useState } from "react";
 import { CategoryAccordion } from "./CategoryAccordion";
 import { TopColorList } from "./TopColorList";
+import { WardrobeItemRow } from "./WardrobeItemRow";
 import { catalogByCategory, catalogIdCategory, normalizeChecklistIds, SKIP_IDS } from "../data/catalog";
 import type { CatalogItem } from "../data/catalog";
+import type { WardrobeItem } from "../data/types";
 
 interface Props {
   selectedIds: string[];
   itemColors?: Record<string, string[]>;
+  customItems?: WardrobeItem[];
+  onArchiveCustom?: (id: string) => void;
+  onEditCustom?: (item: WardrobeItem) => void;
+  onRemoveCustom?: (id: string) => void;
   onChange: (ids: string[], itemColors: Record<string, string[]>) => void;
 }
 
@@ -16,7 +22,15 @@ function matchesQuery(item: CatalogItem, query: string): boolean {
   return haystack.includes(query);
 }
 
-export function OnboardingChecklist({ selectedIds, itemColors = {}, onChange }: Props) {
+export function OnboardingChecklist({
+  selectedIds,
+  itemColors = {},
+  customItems = [],
+  onArchiveCustom,
+  onEditCustom,
+  onRemoveCustom,
+  onChange,
+}: Props) {
   const ids = normalizeChecklistIds(selectedIds);
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
@@ -159,6 +173,23 @@ export function OnboardingChecklist({ selectedIds, itemColors = {}, onChange }: 
               onToggleColor={toggleItemColor}
               expandGroups={Boolean(normalizedQuery)}
             />
+            {customItems.filter((item) => item.category === group.category).length ? (
+              <div className="wardrobe-bar-list">
+                {customItems
+                  .filter((item) => item.category === group.category)
+                  .map((item) => (
+                    <WardrobeItemRow
+                      key={item.id}
+                      item={item}
+                      mode="active"
+                      onArchive={() => onArchiveCustom?.(item.id)}
+                      onRestore={() => undefined}
+                      onEdit={onEditCustom ? () => onEditCustom(item) : undefined}
+                      onRemove={onRemoveCustom ? () => onRemoveCustom(item.id) : undefined}
+                    />
+                  ))}
+              </div>
+            ) : null}
           </CategoryAccordion>
         );
       })}
