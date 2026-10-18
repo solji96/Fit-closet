@@ -1,4 +1,4 @@
-const CACHE = "fashion-calendar-v2";
+const CACHE = "fashion-calendar-v3";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/icons/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -18,6 +18,18 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.pathname.startsWith("/api/")) return;
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          if (response.ok) caches.open(CACHE).then((cache) => cache.put("/", copy));
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match("/"))),
+    );
+    return;
+  }
   event.respondWith(
     caches.match(request).then((cached) => {
       const fetched = fetch(request)

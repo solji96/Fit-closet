@@ -22,7 +22,8 @@ import {
 import { pruneItemKeeps, toggleKeep } from "./keeps";
 import type { KeepEntry } from "./keeps";
 import { toClosetPayload } from "./closetMap";
-import { applyCloset, clearDeviceSession, openCloset, profileExists, readDeviceSession, resumeCloset, saveCloset, writeDeviceSession } from "./closetSync";
+import { applyCloset, chooseCloset, clearDeviceSession, getSession, openCloset, profileExists, resumeCloset, saveCloset, writeDeviceSession } from "./closetSync";
+import { SupabaseConfigError } from "./supabase";
 import { defaultState, loadState, saveState } from "./storage";
 import { normalizeMoodList } from "../domain/tpo";
 import { weatherBand } from "./weather";
@@ -504,46 +505,78 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const lastPayload = useRef("");
   const deviceToken = useRef<string | null>(null);
 
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  const flushCloset = useCallback((keepalive = false) => {
+    const current = stateRef.current;
+    if (!canSync.current || !deviceToken.current || !current.nickname || !current.onboardingComplete) return;
+    const payload = toClosetPayload(current);
+    const body = JSON.stringify(payload);
+    if (body === lastPayload.current) return;
+    const token = deviceToken.current;
+    void saveCloset(current.nickname, token, payload, keepalive)
+      .then(() => {
+        lastPayload.current = body;
+        setSyncMessage(null);
+      })
+      .catch((error: unknown) => {
+        if (keepalive && document.visibilityState === "hidden") return;
+        setSyncMessage(
+          error instanceof SupabaseConfigError
+            ? "Supabase 연결 설정이 배포에 없습니다. 환경 변수를 넣은 뒤 다시 배포해 주세요."
+            : "Supabase에 저장하지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요.",
+        );
+      });
+  }, []);
+
   useEffect(() => {
     let cancel = false;
     const local = loadState();
-    const session = readDeviceSession();
     const start = async () => {
+      const session = await getSession();
+      if (cancel) return;
       if (!session) {
         canSync.current = false;
-        if (!cancel) {
-          dispatch({ type: "hydrate", state: local });
-          setReady(true);
-        }
+        dispatch({ type: "hydrate", state: local });
+        setReady(true);
         return;
       }
+      deviceToken.current = session.token;
+      canSync.current = true;
+      const keepLocal = (nickname = session.nickname) => {
+        dispatch({
+          type: "hydrate",
+          state: { ...local, nickname: local.nickname || nickname },
+        });
+        setSignedIn(true);
+        setReady(true);
+      };
       try {
-        const remote = await resumeCloset(session);
-        if (!remote) {
+        const result = await resumeCloset(session);
+        if (cancel) return;
+        if (result.status === "unauthorized") {
           clearDeviceSession();
+          deviceToken.current = null;
           canSync.current = false;
-          if (!cancel) {
-            dispatch({ type: "hydrate", state: local });
-            setReady(true);
-          }
+          dispatch({ type: "hydrate", state: local });
+          setReady(true);
           return;
         }
-        deviceToken.current = session.token;
-        const next = remote.onboardingComplete ? applyCloset(remote, local) : { ...local, nickname: remote.nickname };
-        if (remote.onboardingComplete) lastPayload.current = JSON.stringify(toClosetPayload(next));
-        canSync.current = true;
-        if (!cancel) {
-          dispatch({ type: "hydrate", state: next });
-          setSignedIn(true);
-          setReady(true);
+        if (result.status === "invalid") {
+          keepLocal();
+          return;
         }
+        writeDeviceSession(session);
+        const next = chooseCloset(result.closet, local);
+        if (result.closet.onboardingComplete) lastPayload.current = JSON.stringify(toClosetPayload(next));
+        dispatch({ type: "hydrate", state: next });
+        setSignedIn(true);
+        setReady(true);
       } catch {
-        canSync.current = false;
-        if (!cancel) {
-          dispatch({ type: "hydrate", state: local });
-          setSyncMessage("Supabase에서 옷장을 불러오지 못했습니다. 저장은 잠시 멈춰 두었습니다.");
-          setReady(true);
-        }
+        if (cancel) return;
+        keepLocal();
+        setSyncMessage("Supabase에서 옷장을 불러오지 못했습니다. 이 기기의 프로필은 그대로 열어 두었습니다.");
       }
     };
     void start();
@@ -556,24 +589,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (ready) saveState(state);
   }, [state, ready]);
 
+  const savedOnce = useRef(false);
+
   useEffect(() => {
     if (!ready || !canSync.current || !signedIn || !deviceToken.current || !state.nickname || !state.onboardingComplete) return;
-    const payload = toClosetPayload(state);
-    const body = JSON.stringify(payload);
-    if (body === lastPayload.current) return;
-    const token = deviceToken.current;
-    const timer = window.setTimeout(() => {
-      void saveCloset(state.nickname, token, payload)
-        .then(() => {
-          lastPayload.current = body;
-          setSyncMessage(null);
-        })
-        .catch(() => {
-          setSyncMessage("Supabase에 저장하지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요.");
-        });
-    }, 600);
+    const delay = savedOnce.current ? 600 : 0;
+    savedOnce.current = true;
+    const timer = window.setTimeout(() => flushCloset(false), delay);
     return () => window.clearTimeout(timer);
-  }, [ready, signedIn, state]);
+  }, [flushCloset, ready, signedIn, state]);
+
+  useEffect(() => {
+    const flush = () => flushCloset(true);
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [flushCloset]);
 
   const openWithPin = useCallback(async (nickname: string, pin: string) => {
     const name = nickname.trim().slice(0, 24);

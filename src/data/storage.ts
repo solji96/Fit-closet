@@ -88,11 +88,27 @@ export function loadState(): AppState {
   }
 }
 
+function withoutInlinePhotos(state: AppState): AppState {
+  return {
+    ...state,
+    wardrobe: state.wardrobe.map((item) => {
+      if (!item.imageUrl?.startsWith("data:")) return item;
+      const next = { ...item };
+      delete next.imageUrl;
+      return next;
+    }),
+  };
+}
+
 export function saveState(state: AppState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
-    // Quota or private mode: keep in-memory only.
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withoutInlinePhotos(state)));
+    } catch {
+      // Quota or private mode: the device session is stored separately.
+    }
   }
 }
 
