@@ -589,6 +589,10 @@ textarea {
   cursor: pointer;
 }
 
+.profile-leave {
+  letter-spacing: 0.02em;
+}
+
 .profile-submit:hover {
   border-color: #d4af37;
 }
@@ -871,6 +875,46 @@ body:has(.boutique-lounge) {
 .onboarding-header {
   display: grid;
   gap: 16px;
+}
+
+.start-guide {
+  display: grid;
+  gap: 12px;
+}
+
+.start-guide h2 {
+  font-size: 1.05rem;
+}
+
+.start-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.start-steps li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 28px;
+  color: var(--onb-text, #282421);
+  font-size: 0.95rem;
+}
+
+.start-steps li.is-now {
+  font-weight: 500;
+}
+
+.start-step-index {
+  color: var(--onb-gold, #d4af37);
+  font-weight: 600;
+  min-width: 1rem;
+}
+
+.start-guide .helper {
+  margin: 0;
 }
 
 .onboarding-lounge .brand-kicker,
@@ -2304,6 +2348,10 @@ body:has(.boutique-lounge) {
   font-size: 0.82rem;
   font-weight: 500;
   cursor: pointer;
+}
+
+.onboarding-next.is-sentence {
+  letter-spacing: 0.02em;
 }
 
 .onboarding-next:hover {

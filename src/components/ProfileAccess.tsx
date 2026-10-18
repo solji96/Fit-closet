@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { isPin, normalizePin } from "../data/pin";
 import { useStore } from "../data/store";
+import { PersonIcon } from "./BoutiqueBar";
 
 interface Props {
   open: boolean;
@@ -10,8 +11,33 @@ interface Props {
   onReady: (result: "created" | "unlocked") => void;
 }
 
+export function ProfileMenu() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        className="line-icon"
+        type="button"
+        aria-label="프로필"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+      >
+        <PersonIcon />
+      </button>
+      <ProfileAccess
+        open={open}
+        onClose={() => setOpen(false)}
+        submitLabel="옷장 열기"
+        busyLabel="확인하고 있어요"
+        onReady={() => setOpen(false)}
+      />
+    </>
+  );
+}
+
 export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady }: Props) {
-  const { state, signedIn, profileExists, openWithPin } = useStore();
+  const { state, signedIn, profileExists, openWithPin, signOut } = useStore();
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const [nickname, setNickname] = useState("");
@@ -46,7 +72,7 @@ export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady }
       return;
     }
     if (result === "invalid_pin") {
-      setPromptError("PIN 번호가 맞지 않아요. 다시 한번 입력해 주세요.");
+      setPromptError("숫자 4자리가 맞지 않아요. 다시 한번 입력해 주세요.");
       return;
     }
     setError("옷장을 열지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
@@ -55,15 +81,15 @@ export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady }
   const submit = async () => {
     const name = nickname.trim();
     if (!name) {
-      setError("닉네임을 입력해 주세요.");
+      setError("이름을 입력해 주세요.");
       return;
     }
     if (name.length > 24) {
-      setError("닉네임은 24자까지 입력할 수 있어요.");
+      setError("이름은 24자까지 입력할 수 있어요.");
       return;
     }
     if (!isPin(pin)) {
-      setError("PIN 번호 4자리를 입력해 주세요.");
+      setError("숫자 4자리를 입력해 주세요.");
       return;
     }
     setBusy(true);
@@ -86,7 +112,7 @@ export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady }
 
   const confirmPin = async () => {
     if (!isPin(promptPin)) {
-      setPromptError("PIN 번호 4자리를 입력해 주세요.");
+      setPromptError("숫자 4자리를 입력해 주세요.");
       return;
     }
     setBusy(true);
@@ -123,17 +149,28 @@ export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady }
         {signedIn ? (
           <>
             <h2 id={titleId}>옷장이 열려 있어요</h2>
-            <p className="lede">{state.nickname}</p>
+            <p className="lede">{state.nickname ? `${state.nickname}님` : "프로필"}</p>
+            <p className="profile-note">이 기기의 기억만 지워요. 다른 이름과 숫자 4자리로 다시 열 수 있어요.</p>
+            <button
+              className="profile-submit profile-leave"
+              type="button"
+              onClick={() => {
+                signOut();
+                onClose();
+              }}
+            >
+              옷장 나가기
+            </button>
             <button className="profile-submit" type="button" onClick={close}>
               닫기
             </button>
           </>
         ) : pendingName ? (
           <>
-            <h2 id={titleId}>이미 존재하는 닉네임입니다</h2>
-            <p className="lede">PIN 번호 4자리를 입력해 주세요.</p>
+            <h2 id={titleId}>이 이름은 이미 옷장이 있어요</h2>
+            <p className="lede">만들 때 정한 숫자 4자리를 입력해 주세요.</p>
             <label className="field">
-              <span>PIN 번호</span>
+              <span>숫자 4자리</span>
               <input
                 className="profile-field pin-input"
                 type="password"
@@ -142,7 +179,7 @@ export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady }
                 maxLength={4}
                 value={promptPin}
                 placeholder="••••"
-                aria-label="기존 옷장의 PIN 번호"
+                aria-label="기존 옷장의 숫자 4자리"
                 onChange={(event) => setPromptPin(normalizePin(event.target.value))}
               />
             </label>
@@ -157,21 +194,21 @@ export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady }
           </>
         ) : (
           <>
-            <h2 id={titleId}>프로필</h2>
-            <p className="lede">닉네임과 PIN으로 옷장을 살며시 열어 드려요.</p>
+            <h2 id={titleId}>옷장을 열어 볼게요</h2>
+            <p className="lede">부를 이름과 숫자 4자리만 정하면 돼요.</p>
             <label className="field">
-              <span>닉네임</span>
+              <span>이름</span>
               <input
                 className="profile-field"
                 value={nickname}
                 maxLength={24}
                 autoComplete="nickname"
-                placeholder="나만의 닉네임 또는 프로필 이름을 입력해 주세요"
+                placeholder="예: 치치"
                 onChange={(event) => setNickname(event.target.value)}
               />
             </label>
             <label className="field">
-              <span>PIN 번호</span>
+              <span>숫자 4자리</span>
               <input
                 className="profile-field pin-input"
                 type="password"
@@ -180,13 +217,13 @@ export function ProfileAccess({ open, onClose, submitLabel, busyLabel, onReady }
                 maxLength={4}
                 value={pin}
                 placeholder="••••"
-                aria-label="PIN 번호 4자리"
+                aria-label="숫자 4자리"
                 onChange={(event) => setPin(normalizePin(event.target.value))}
               />
             </label>
             <div className="profile-notes">
-              <p className="profile-note">동일한 닉네임을 입력하시면, 언제 어디서나 저장해 두신 나만의 옷장과 룩북을 불러올 수 있어요.</p>
-              <p className="profile-note">숫자 4자리로 옷장을 살며시 지켜 드려요. 이 기기에서는 한 번 확인하시면 다음부터 바로 열려요.</p>
+              <p className="profile-note">이 폰에서는 한 번 열면, 다음부터 바로 들어와요.</p>
+              <p className="profile-note">다른 기기에서는 같은 이름과 숫자 4자리로 다시 열 수 있어요.</p>
             </div>
             {error ? (
               <p className="field-error" role="alert">

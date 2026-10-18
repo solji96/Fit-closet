@@ -3,6 +3,7 @@ import { supabaseRpc } from "./supabase";
 import type { AppState } from "./types";
 
 const DEVICE_KEY = "smart-fashion-calendar:device";
+const LOGGED_OUT_KEY = "smart-fashion-calendar:logged-out";
 const SESSION_COOKIE = "sfc_device";
 const SESSION_DB = "smart-fashion-calendar";
 const SESSION_STORE = "kv";
@@ -121,6 +122,7 @@ function deleteSessionDb(): void {
 
 export function writeDeviceSession(session: DeviceSession): void {
   try {
+    localStorage.removeItem(LOGGED_OUT_KEY);
     localStorage.setItem(DEVICE_KEY, JSON.stringify(session));
   } catch {
     // A full cache should not drop the login. The cookie and IndexedDB still keep it.
@@ -131,6 +133,7 @@ export function writeDeviceSession(session: DeviceSession): void {
 
 export function clearDeviceSession(): void {
   try {
+    localStorage.setItem(LOGGED_OUT_KEY, "1");
     localStorage.removeItem(DEVICE_KEY);
   } catch {
     // Ignore blocked storage and still clear the other copies.
@@ -142,6 +145,10 @@ export function clearDeviceSession(): void {
 /** Reads the saved device login on startup, including copies outside localStorage. */
 export async function getSession(): Promise<DeviceSession | null> {
   try {
+    if (localStorage.getItem(LOGGED_OUT_KEY) === "1") {
+      clearDeviceSession();
+      return null;
+    }
     const stored = parseDeviceSession(localStorage.getItem(DEVICE_KEY));
     if (stored) return stored;
   } catch {

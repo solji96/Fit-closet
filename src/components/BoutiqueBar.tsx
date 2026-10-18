@@ -59,7 +59,7 @@ export function HeartIcon() {
   );
 }
 
-function PersonIcon() {
+export function PersonIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="8" r="3" />

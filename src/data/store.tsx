@@ -484,6 +484,7 @@ interface StoreValue {
   signedIn: boolean;
   profileExists: (nickname: string) => Promise<boolean>;
   openWithPin: (nickname: string, pin: string) => Promise<"created" | "unlocked" | "invalid_pin" | "locked" | "error">;
+  signOut: () => void;
   applyQuickEdit: (
     rec: OutfitRecommendation,
     action:
@@ -618,6 +619,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [flushCloset]);
 
+  const signOut = useCallback(() => {
+    const current = stateRef.current;
+    const token = deviceToken.current;
+    if (canSync.current && token && current.nickname && current.onboardingComplete) {
+      void saveCloset(current.nickname, token, toClosetPayload(current)).catch(() => undefined);
+    }
+    canSync.current = false;
+    deviceToken.current = null;
+    lastPayload.current = "";
+    savedOnce.current = false;
+    clearDeviceSession();
+    dispatch({ type: "hydrate", state: defaultState });
+    setSignedIn(false);
+    setSyncMessage(null);
+  }, []);
+
   const openWithPin = useCallback(async (nickname: string, pin: string) => {
     const name = nickname.trim().slice(0, 24);
     if (!name) return "error" as const;
@@ -655,6 +672,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       signedIn,
       profileExists,
       openWithPin,
+      signOut,
       applyQuickEdit: (rec, edit) => {
         const event = state.events.find((entry) => entry.id === rec.eventId);
         if (!event) return { ok: false, message: "일정을 찾을 수 없습니다." };
@@ -730,7 +748,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return { ok: true };
       },
     };
-  }, [openWithPin, ready, signedIn, state, syncMessage]);
+  }, [openWithPin, ready, signOut, signedIn, state, syncMessage]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

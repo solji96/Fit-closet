@@ -4,7 +4,7 @@ import { Toast } from "../components/Toast";
 import { useStore } from "../data/store";
 
 export function PreferencesScreen() {
-  const { state, dispatch } = useStore();
+  const { state, dispatch, signOut } = useStore();
   const [draft, setDraft] = useState(state.preferences);
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -44,6 +44,13 @@ export function PreferencesScreen() {
       >
         선호 저장
       </button>
+      <section className="stack" aria-label="계정">
+        <h2>이 기기에서 나가기</h2>
+        <p className="helper">다른 이름과 숫자 4자리로 바꾸려면, 이 기기의 기억만 지우면 돼요.</p>
+        <button className="btn" type="button" onClick={signOut}>
+          옷장 나가기
+        </button>
+      </section>
       <Toast message={toast} onClear={() => setToast(null)} />
     </main>
   );
