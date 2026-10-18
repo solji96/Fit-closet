@@ -1,5 +1,5 @@
-const url = import.meta.env.VITE_SUPABASE_URL;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const url = import.meta.env.VITE_SUPABASE_URL?.trim();
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 
 export class SupabaseConfigError extends Error {
   constructor() {

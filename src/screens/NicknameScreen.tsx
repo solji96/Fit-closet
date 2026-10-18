@@ -3,7 +3,7 @@ import { BoutiqueBar } from "../components/BoutiqueBar";
 import { ProfileAccess } from "../components/ProfileAccess";
 
 export function NicknameScreen() {
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(true);
 
   return (
     <main id="main" className="app-shell stack boutique-lounge">

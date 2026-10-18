@@ -22,7 +22,7 @@ import {
 import { pruneItemKeeps, toggleKeep } from "./keeps";
 import type { KeepEntry } from "./keeps";
 import { toClosetPayload } from "./closetMap";
-import { applyCloset, chooseCloset, clearDeviceSession, getSession, openCloset, profileExists, resumeCloset, saveCloset, writeDeviceSession } from "./closetSync";
+import { applyCloset, chooseCloset, clearDeviceSession, getSession, openCloset, profileExists, resumeCloset, saveCloset, SaveRejectedError, writeDeviceSession } from "./closetSync";
 import { SupabaseConfigError } from "./supabase";
 import { defaultState, loadState, saveState } from "./storage";
 import { normalizeMoodList } from "../domain/tpo";
@@ -522,6 +522,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       })
       .catch((error: unknown) => {
         if (keepalive && document.visibilityState === "hidden") return;
+        if (error instanceof SaveRejectedError) {
+          clearDeviceSession();
+          deviceToken.current = null;
+          canSync.current = false;
+          setSignedIn(false);
+          setSyncMessage("옷장 확인이 끝나서 프로필을 다시 열어 주세요.");
+          return;
+        }
         setSyncMessage(
           error instanceof SupabaseConfigError
             ? "Supabase 연결 설정이 배포에 없습니다. 환경 변수를 넣은 뒤 다시 배포해 주세요."
@@ -542,41 +550,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setReady(true);
         return;
       }
-      deviceToken.current = session.token;
-      canSync.current = true;
-      const keepLocal = (nickname = session.nickname) => {
-        dispatch({
-          type: "hydrate",
-          state: { ...local, nickname: local.nickname || nickname },
-        });
-        setSignedIn(true);
-        setReady(true);
-      };
       try {
         const result = await resumeCloset(session);
         if (cancel) return;
-        if (result.status === "unauthorized") {
+        if (result.status !== "unlocked") {
           clearDeviceSession();
           deviceToken.current = null;
           canSync.current = false;
-          dispatch({ type: "hydrate", state: local });
+          dispatch({ type: "hydrate", state: { ...local, nickname: local.nickname || session.nickname } });
+          setSignedIn(false);
           setReady(true);
+          setSyncMessage("저장된 프로필 확인이 끝나서 닉네임과 PIN으로 다시 열어 주세요.");
           return;
         }
-        if (result.status === "invalid") {
-          keepLocal();
-          return;
-        }
+        deviceToken.current = session.token;
+        canSync.current = true;
         writeDeviceSession(session);
         const next = chooseCloset(result.closet, local);
         if (result.closet.onboardingComplete) lastPayload.current = JSON.stringify(toClosetPayload(next));
         dispatch({ type: "hydrate", state: next });
         setSignedIn(true);
         setReady(true);
-      } catch {
+      } catch (error) {
         if (cancel) return;
-        keepLocal();
-        setSyncMessage("Supabase에서 옷장을 불러오지 못했습니다. 이 기기의 프로필은 그대로 열어 두었습니다.");
+        deviceToken.current = null;
+        canSync.current = false;
+        dispatch({ type: "hydrate", state: { ...local, nickname: local.nickname || session.nickname } });
+        setSignedIn(false);
+        setReady(true);
+        setSyncMessage(
+          error instanceof SupabaseConfigError
+            ? "Supabase 연결 설정이 배포에 없습니다. 환경 변수를 넣은 뒤 다시 배포해 주세요."
+            : "Supabase에서 옷장을 불러오지 못했습니다. 연결을 확인한 뒤 프로필로 다시 열어 주세요.",
+        );
       }
     };
     void start();

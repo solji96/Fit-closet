@@ -203,7 +203,14 @@ export async function saveCloset(
     },
     keepalive,
   );
-  if (!data?.ok) throw new Error("Supabase 저장이 거절되었습니다.");
+  if (!data?.ok) throw new SaveRejectedError();
+}
+
+export class SaveRejectedError extends Error {
+  constructor() {
+    super("Supabase 저장이 거절되었습니다.");
+    this.name = "SaveRejectedError";
+  }
 }
 
 export function chooseCloset(remote: ClosetRecord, local: AppState): AppState {

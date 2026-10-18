@@ -9,6 +9,15 @@ import { OutfitScreen } from "./screens/OutfitScreen";
 import { PreferencesScreen } from "./screens/PreferencesScreen";
 import { WardrobeScreen } from "./screens/WardrobeScreen";
 
+function SyncNote({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <p className="field-error app-sync-note" role="alert">
+      {message}
+    </p>
+  );
+}
+
 export default function App() {
   const { state, ready, syncMessage, signedIn } = useStore();
 
@@ -24,14 +33,22 @@ export default function App() {
 
   if (!state.onboardingComplete) {
     return (
-      <Routes>
-        <Route path="*" element={<OnboardingScreen />} />
-      </Routes>
+      <>
+        <SyncNote message={syncMessage} />
+        <Routes>
+          <Route path="*" element={<OnboardingScreen />} />
+        </Routes>
+      </>
     );
   }
 
   if (!signedIn) {
-    return <NicknameScreen />;
+    return (
+      <>
+        <SyncNote message={syncMessage} />
+        <NicknameScreen />
+      </>
+    );
   }
 
   return (
@@ -39,11 +56,7 @@ export default function App() {
       <a className="sr-only" href="#main">
         본문으로 건너뛰기
       </a>
-      {syncMessage ? (
-        <p className="field-error app-sync-note" role="alert">
-          {syncMessage}
-        </p>
-      ) : null}
+      <SyncNote message={syncMessage} />
       <Routes>
         <Route path="/" element={<Navigate to="/outfit" replace />} />
         <Route path="/onboarding" element={<OnboardingScreen />} />
