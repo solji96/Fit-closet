@@ -113,6 +113,7 @@ export function saveState(state: AppState): void {
 }
 
 export function persistenceNote(nickname?: string): string {
-  if (!nickname) return "닉네임을 정하면 옷장과 룩북이 Supabase에 저장됩니다.";
-  return `닉네임 ${nickname}의 옷장과 룩북은 Supabase에 저장되어 있어요. 이 기기는 확인을 기억해서 다음에도 바로 열려요.`;
+  const name = nickname?.trim();
+  if (!name) return "닉네임을 정하면 옷장과 룩북이 안전하게 저장돼요.";
+  return `${name}님의 옷장과 룩북이 안전하게 저장되어 있어요. 이 기기에서는 다음에 바로 열려요.`;
 }
